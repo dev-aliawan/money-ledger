@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --paper: #F6F2E9;
+    --paper-line: #E4DCC8;
+    --ink: #1F2E28;
+    --ink-soft: #5B6960;
+    --green: #2F6B4F;
+    --green-bg: #E4EEE6;
+    --rust: #A6432F;
+    --rust-bg: #F3E3DE;
+    --gold: #A8862F;
+    --card: #FFFDF8;
+    --shadow: 0 1px 0 rgba(31,46,40,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .app{
+    display:flex;
+    max-width:980px;
+    margin:0 auto;
+    min-height:100vh;
+  }
+  /* Sidebar */
+  .sidebar{
+    width:250px;
+    flex-shrink:0;
+    padding:28px 14px 28px 20px;
+    border-right:1px solid var(--paper-line);
+  }
+  .brand{
+    font-family:'Fraunces',serif;
+    font-size:22px;
+    font-weight:600;
+    letter-spacing:-0.01em;
+    margin:0 0 2px 4px;
+  }
+  .brand-sub{
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin:0 0 22px 4px;
+    letter-spacing:0.02em;
+  }
+  .people-list{
+    list-style:none;
+    margin:0;
+    padding:0;
+  }
+  .person-tab{
+    position:relative;
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:6px;
+    padding:10px 12px;
+    margin-bottom:2px;
+    border-radius:6px 2px 2px 6px;
+    cursor:pointer;
+    background:transparent;
+    border-left:3px solid transparent;
+    transition:background .12s ease;
+  }
+  .person-tab:hover{ background:var(--card); }
+  .person-tab.active{
+    background:var(--card);
+    border-left:3px solid var(--gold);
+    box-shadow:var(--shadow);
+  }
+  .person-name{
+    font-family:'Fraunces',serif;
+    font-size:15px;
+    font-weight:500;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .person-balance{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    flex-shrink:0;
+  }
+  .person-balance.pos{ color:var(--green); }
+  .person-balance.neg{ color:var(--rust); }
+  .add-person{
+    margin-top:14px;
+    display:flex;
+    gap:6px;
+  }
+  .add-person input{
+    flex:1;
+    min-width:0;
+    padding:8px 10px;
+    border:1px solid var(--paper-line);
+    border-radius:5px;
+    background:var(--card);
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    color:var(--ink);
+  }
+  .add-person input:focus{ outline:2px solid var(--gold); outline-offset:1px; }
+  .icon-btn{
+    border:none;
+    background:var(--ink);
+    color:var(--paper);
+    width:32px;
+    height:32px;
+    border-radius:5px;
+    cursor:pointer;
+    font-size:16px;
+    line-height:1;
+    flex-shrink:0;
+  }
+  .icon-btn:hover{ background:var(--green); }
+  .empty-side{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    padding:6px 4px;
+    line-height:1.5;
+  }
+
+  /* Main */
+  .main{
+    flex:1;
+    min-width:0;
+    padding:28px 32px 40px;
+  }
+  .main-empty{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    height:70vh;
+    text-align:center;
+    color:var(--ink-soft);
+  }
+  .main-empty .glyph{ font-family:'Fraunces',serif; font-size:44px; color:var(--paper-line); margin-bottom:6px;}
+  .header-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:22px;
+    gap:20px;
+  }
+  .header-row h1{
+    font-family:'Fraunces',serif;
+    font-size:28px;
+    font-weight:600;
+    margin:0 0 4px;
+  }
+  .header-row .meta{
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  .balance-block{
+    text-align:right;
+    flex-shrink:0;
+  }
+  .balance-label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--ink-soft);
+    margin-bottom:2px;
+  }
+  .balance-figure{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:26px;
+    font-weight:600;
+  }
+  .balance-figure.pos{ color:var(--green); }
+  .balance-figure.neg{ color:var(--rust); }
+
+  .entry-form{
+    background:var(--card);
+    border:1px solid var(--paper-line);
+    border-radius:10px;
+    padding:16px 18px;
+    margin-bottom:26px;
+  }
+  .form-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+  }
+  .field{ display:flex; flex-direction:column; gap:5px; }
+  .field label{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--ink-soft);
+  }
+  .field input, .field select{
+    padding:9px 10px;
+    border:1px solid var(--paper-line);
+    border-radius:6px;
+    background:#fff;
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    color:var(--ink);
+  }
+  .field input:focus, .field select:focus{ outline:2px solid var(--gold); outline-offset:1px; }
+  .field.amount input{ font-family:'IBM Plex Mono',monospace; width:130px; }
+  .field.note input{ width:220px; }
+  .type-toggle{
+    display:flex;
+    border:1px solid var(--paper-line);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .type-toggle button{
+    border:none;
+    background:#fff;
+    padding:9px 14px;
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:500;
+    cursor:pointer;
+    color:var(--ink-soft);
+  }
+  .type-toggle button.sel-in.active{ background:var(--green-bg); color:var(--green); }
+  .type-toggle button.sel-out.active{ background:var(--rust-bg); color:var(--rust); }
+  .submit-btn{
+    border:none;
+    background:var(--ink);
+    color:var(--paper);
+    padding:10px 18px;
+    border-radius:6px;
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .submit-btn:hover{ background:var(--green); }
+  .form-err{ font-size:12px; color:var(--rust); margin-top:8px; }
+
+  .entries{
+    border-top:1px solid var(--paper-line);
+  }
+  .entry-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:13px 4px;
+    border-bottom:1px solid var(--paper-line);
+  }
+  .entry-mark{
+    width:28px;
+    height:28px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:14px;
+    flex-shrink:0;
+  }
+  .entry-mark.in{ background:var(--green-bg); color:var(--green); }
+  .entry-mark.out{ background:var(--rust-bg); color:var(--rust); }
+  .entry-note{
+    flex:1;
+    min-width:0;
+  }
+  .entry-note .note-text{ font-size:14px; }
+  .entry-note .note-empty{ color:var(--ink-soft); font-style:italic; }
+  .entry-date{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+  .entry-amount{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:15px;
+    font-weight:600;
+    flex-shrink:0;
+    width:100px;
+    text-align:right;
+  }
+  .entry-amount.in{ color:var(--green); }
+  .entry-amount.out{ color:var(--rust); }
+  .entry-edit{
+    border:none;
+    background:none;
+    color:var(--paper-line);
+    cursor:pointer;
+    font-size:14px;
+    padding:2px 4px;
+    flex-shrink:0;
+  }
+  .entry-row:hover .entry-edit{ color:var(--ink-soft); }
+  .entry-edit:hover{ color:var(--gold) !important; }
+  .entry-row.editing{
+    background:var(--green-bg);
+    border-radius:6px;
+    margin:0 -6px;
+    padding-left:10px;
+    padding-right:10px;
+  }
+  .form-title{
+    font-family:'Fraunces',serif;
+    font-size:13px;
+    font-weight:600;
+    color:var(--green);
+    margin-bottom:10px;
+  }
+  .cancel-btn{
+    border:1px solid var(--paper-line);
+    background:none;
+    color:var(--ink-soft);
+    padding:10px 16px;
+    border-radius:6px;
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    cursor:pointer;
+  }
+  .cancel-btn:hover{ color:var(--rust); border-color:var(--rust); }
+  .entry-del{
+    border:none;
+    background:none;
+    color:var(--paper-line);
+    cursor:pointer;
+    font-size:16px;
+    padding:2px 4px;
+    flex-shrink:0;
+  }
+  .entry-row:hover .entry-del{ color:var(--ink-soft); }
+  .entry-del:hover{ color:var(--rust) !important; }
+  .no-entries{
+    padding:30px 4px;
+    color:var(--ink-soft);
+    font-size:13.5px;
+    text-align:center;
+  }
+  .loading{
+    padding:40px;
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:13.5px;
+  }
+  .person-del{
+    background:none;
+    border:none;
+    color:var(--paper-line);
+    cursor:pointer;
+    font-size:15px;
+    padding:0 2px;
+  }
+  .person-tab:hover .person-del{ color:var(--ink-soft); }
+  .person-del:hover{ color:var(--rust) !important; }
+
+  .signin-screen{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    height:100vh;
+    width:100%;
+    padding:20px;
+  }
+  .signin-btn{
+    border:none;
+    background:var(--ink);
+    color:var(--paper);
+    padding:13px 24px;
+    border-radius:8px;
+    font-family:'Inter',sans-serif;
+    font-size:14.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .signin-btn:hover{ background:var(--green); }
+  .signin-note{
+    max-width:320px;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:22px;
+    line-height:1.5;
+  }
+  .sync-indicator{
+    font-size:11px;
+    color:var(--ink-soft);
+    margin-top:10px;
+    padding:0 2px;
+  }
+  @media (max-width:640px){
+    .app{ flex-direction:column; }
+    .sidebar{ width:auto; border-right:none; border-bottom:1px solid var(--paper-line); }
+    .main{ padding:22px 16px 40px; }
+    .balance-block{ text-align:left; }
+    .header-row{ flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="loading">Opening the ledger…</div>
+</div>
+
+<script>
+// ====== CONFIGURE THIS ======
+// Paste the OAuth Client ID from Google Cloud Console here (ends with .apps.googleusercontent.com)
+const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID_HERE.apps.googleusercontent.com';
+// =============================
+
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DATA_FILENAME = 'money-ledger-data.json';
+
+const state = {
+  signedIn: false,
+  authError: '',
+  people: null,      // [{id,name,createdAt}]
+  activeId: null,
+  entries: {},        // id -> [{id,type,amount,note,createdAt}]
+  loadingEntries: false,
+  formType: 'in',
+  formErr: '',
+  editingId: null,
+  syncing: false
+};
+
+let accessToken = null;
+let tokenClient = null;
+let dataFileId = null;
+let saveTimer = null;
+
+function fmtMoney(n){
+  const v = Math.abs(n);
+  return v.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}) +
+         ' · ' + d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+function balanceOf(id){
+  const list = state.entries[id];
+  if(!list) return 0;
+  return list.reduce((sum,e)=> sum + (e.type==='in' ? e.amount : -e.amount), 0);
+}
+
+// ---------- Google auth ----------
+function initAuth(){
+  if(!window.google || !google.accounts){
+    setTimeout(initAuth, 200);
+    return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    callback: async (resp) => {
+      if(resp.error){
+        state.authError = 'Sign-in failed. Please try again.';
+        render();
+        return;
+      }
+      accessToken = resp.access_token;
+      state.signedIn = true;
+      state.authError = '';
+      render();
+      await loadFromDrive();
+    }
+  });
+  render();
+}
+
+function signIn(){
+  state.authError = '';
+  if(!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.indexOf('YOUR_CLIENT_ID_HERE') !== -1){
+    state.authError = 'This app needs a Google Client ID configured before it can sign in.';
+    render();
+    return;
+  }
+  tokenClient.requestAccessToken({ prompt: state.signedIn ? '' : 'consent' });
+}
+
+async function driveFetch(url, options={}, retry=true){
+  options.headers = Object.assign({}, options.headers, { 'Authorization': 'Bearer ' + accessToken });
+  const res = await fetch(url, options);
+  if(res.status === 401 && retry){
+    await new Promise((resolve)=>{
+      tokenClient.callback = async (resp)=>{
+        if(!resp.error) accessToken = resp.access_token;
+        resolve();
+      };
+      tokenClient.requestAccessToken({ prompt: '' });
+    });
+    return driveFetch(url, options, false);
+  }
+  return res;
+}
+
+async function findOrCreateDataFile(){
+  const q = encodeURIComponent(`name='${DATA_FILENAME}' and trashed=false`);
+  const listRes = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name)`);
+  const listJson = await listRes.json();
+  if(listJson.files && listJson.files.length > 0){
+    return listJson.files[0].id;
+  }
+  const metadata = { name: DATA_FILENAME, mimeType: 'application/json' };
+  const initialContent = JSON.stringify({ people: [], entries: {} });
+  const boundary = 'ledgerboundary';
+  const body =
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
+    `--${boundary}\r\nContent-Type: application/json\r\n\r\n${initialContent}\r\n--${boundary}--`;
+  const createRes = await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+    method: 'POST',
+    headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+    body
+  });
+  const createJson = await createRes.json();
+  return createJson.id;
+}
+
+async function loadFromDrive(){
+  try{
+    dataFileId = await findOrCreateDataFile();
+    const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${dataFileId}?alt=media`);
+    const data = await res.json();
+    state.people = data.people || [];
+    state.entries = data.entries || {};
+  }catch(e){
+    console.error('Could not load from Drive', e);
+    state.authError = 'Could not load your data from Drive. Check your connection and try again.';
+    state.people = state.people || [];
+  }
+  render();
+}
+
+function scheduleSave(){
+  state.syncing = true;
+  render();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveToDrive, 600);
+}
+
+async function saveToDrive(){
+  if(!dataFileId) return;
+  try{
+    const payload = JSON.stringify({ people: state.people, entries: state.entries });
+    await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${dataFileId}?uploadType=media`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload
+    });
+  }catch(e){
+    console.error('Could not save to Drive', e);
+  }
+  state.syncing = false;
+  render();
+}
+
+async function addPerson(name){
+  name = name.trim();
+  if(!name) return;
+  const person = { id: uid(), name, createdAt: new Date().toISOString() };
+  state.people.push(person);
+  state.entries[person.id] = [];
+  state.activeId = person.id;
+  render();
+  scheduleSave();
+}
+
+async function removePerson(id, evt){
+  evt.stopPropagation();
+  if(!confirm('Remove this person and all their records? This cannot be undone.')) return;
+  state.people = state.people.filter(p=>p.id!==id);
+  delete state.entries[id];
+  if(state.activeId===id) state.activeId = state.people[0] ? state.people[0].id : null;
+  render();
+  scheduleSave();
+}
+
+async function selectPerson(id){
+  state.activeId = id;
+  state.formErr = '';
+  render();
+}
+
+async function addEntry(personId, type, amount, note){
+  if(isNaN(amount) || amount < 0) amount = 0;
+  const entry = { id: uid(), type, amount: Math.round(amount*100)/100, note: note.trim(), createdAt: new Date().toISOString() };
+  if(!state.entries[personId]) state.entries[personId] = [];
+  state.entries[personId].unshift(entry);
+  state.formErr = '';
+  render();
+  scheduleSave();
+}
+
+async function updateEntry(personId, entryId, type, amount, note){
+  if(isNaN(amount) || amount < 0) amount = 0;
+  const list = state.entries[personId];
+  const idx = list.findIndex(e=>e.id===entryId);
+  if(idx===-1) return;
+  list[idx] = { ...list[idx], type, amount: Math.round(amount*100)/100, note: note.trim() };
+  state.editingId = null;
+  state.formType = 'in';
+  render();
+  scheduleSave();
+}
+
+async function removeEntry(personId, entryId){
+  state.entries[personId] = state.entries[personId].filter(e=>e.id!==entryId);
+  render();
+  scheduleSave();
+}
+
+function render(){
+  const app = document.getElementById('app');
+
+  if(!state.signedIn){
+    app.innerHTML = `
+      <div class="signin-screen">
+        <p class="brand" style="font-size:30px;">Ledger</p>
+        <p class="brand-sub" style="margin-bottom:26px;">money in, money out — synced to your Google Drive</p>
+        <button class="signin-btn" onclick="signIn()">Sign in with Google</button>
+        ${state.authError ? `<div class="form-err" style="margin-top:14px;">${escapeHtml(state.authError)}</div>` : ''}
+        <p class="signin-note">Your records are stored in a single file in your own Drive. Nothing is shared with anyone else.</p>
+      </div>`;
+    return;
+  }
+
+  if(state.people===null){
+    app.innerHTML = '<div class="loading">Opening the ledger…</div>';
+    return;
+  }
+
+  // Sidebar
+  let sideItems = '';
+  if(state.people.length===0){
+    sideItems = '<div class="empty-side">No one here yet. Add a name below to start a record.</div>';
+  }else{
+    sideItems = state.people.map(p=>{
+      const bal = state.entries[p.id] ? balanceOf(p.id) : null;
+      const balCls = bal===null ? '' : (bal>0?'pos':bal<0?'neg':'');
+      const balText = bal===null ? '···' : (bal>=0?'':'-') + fmtMoney(bal);
+      return `<li class="person-tab ${p.id===state.activeId?'active':''}" onclick="selectPerson('${p.id}')">
+        <span class="person-name">${escapeHtml(p.name)}</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span class="person-balance ${balCls}">${balText}</span>
+          <button class="person-del" title="Remove person" onclick="removePerson('${p.id}', event)">×</button>
+        </span>
+      </li>`;
+    }).join('');
+  }
+
+  const sidebar = `
+    <div class="sidebar">
+      <p class="brand">Ledger</p>
+      <p class="brand-sub">money in, money out</p>
+      <ul class="people-list">${sideItems}</ul>
+      <div class="add-person">
+        <input id="newPersonInput" type="text" placeholder="Add a name…" onkeydown="if(event.key==='Enter'){addPerson(this.value); this.value='';}">
+        <button class="icon-btn" title="Add person" onclick="const i=document.getElementById('newPersonInput'); addPerson(i.value); i.value='';">+</button>
+      </div>
+      <div class="sync-indicator">${state.syncing ? '● Syncing…' : '✓ Synced to Drive'}</div>
+    </div>`;
+
+  // Main
+  let main;
+  if(!state.activeId){
+    main = `<div class="main"><div class="main-empty">
+      <div class="glyph">§</div>
+      <div>Pick a person on the left, or add a new one, to see their record.</div>
+    </div></div>`;
+  }else{
+    const person = state.people.find(p=>p.id===state.activeId);
+    const list = state.entries[person.id];
+
+    if(state.loadingEntries || !list){
+      main = `<div class="main"><div class="loading">Loading ${escapeHtml(person.name)}'s records…</div></div>`;
+    }else{
+      const bal = balanceOf(person.id);
+      const balCls = bal>0?'pos':bal<0?'neg':'';
+      const balText = (bal>=0?'':'-') + fmtMoney(bal);
+
+      const rows = list.length===0
+        ? '<div class="no-entries">No records yet. Add the first one above.</div>'
+        : list.map(e=>`
+          <div class="entry-row ${e.id===state.editingId?'editing':''}">
+            <div class="entry-mark ${e.type}">${e.type==='in'?'+':'–'}</div>
+            <div class="entry-note">
+              <div class="note-text ${e.note?'':'note-empty'}">${e.note ? escapeHtml(e.note) : 'No note'}</div>
+              <div class="entry-date">${fmtDate(e.createdAt)}</div>
+            </div>
+            <div class="entry-amount ${e.type}">${e.type==='in'?'+':'-'}${fmtMoney(e.amount)}</div>
+            <button class="entry-edit" title="Edit" onclick="startEdit('${person.id}','${e.id}')">✎</button>
+            <button class="entry-del" title="Delete" onclick="removeEntry('${person.id}','${e.id}')">×</button>
+          </div>`).join('');
+
+      const editingEntry = state.editingId ? list.find(e=>e.id===state.editingId) : null;
+
+      main = `<div class="main">
+        <div class="header-row">
+          <div>
+            <h1>${escapeHtml(person.name)}</h1>
+            <div class="meta">Record created ${fmtDate(person.createdAt)}</div>
+          </div>
+          <div class="balance-block">
+            <div class="balance-label">Balance</div>
+            <div class="balance-figure ${balCls}">${balText}</div>
+          </div>
+        </div>
+
+        <div class="entry-form">
+          ${editingEntry ? '<div class="form-title">Editing record</div>' : ''}
+          <div class="form-row">
+            <div class="field">
+              <label>Type</label>
+              <div class="type-toggle">
+                <button type="button" class="sel-in ${state.formType==='in'?'active':''}" onclick="state.formType='in'; render();">Money in</button>
+                <button type="button" class="sel-out ${state.formType==='out'?'active':''}" onclick="state.formType='out'; render();">Money out</button>
+              </div>
+            </div>
+            <div class="field amount">
+              <label>Amount (optional)</label>
+              <input id="amountInput" type="number" min="0" step="0.01" placeholder="0.00" value="${editingEntry ? editingEntry.amount : ''}">
+            </div>
+            <div class="field note">
+              <label>Note (optional)</label>
+              <input id="noteInput" type="text" placeholder="What's this for?" value="${editingEntry ? escapeHtml(editingEntry.note) : ''}">
+            </div>
+            <button class="submit-btn" onclick="submitEntry('${person.id}')">${editingEntry ? 'Save changes' : 'Add record'}</button>
+            ${editingEntry ? `<button class="cancel-btn" onclick="cancelEdit()">Cancel</button>` : ''}
+          </div>
+          ${state.formErr ? `<div class="form-err">${escapeHtml(state.formErr)}</div>` : ''}
+        </div>
+
+        <div class="entries">${rows}</div>
+      </div>`;
+    }
+  }
+
+  app.innerHTML = sidebar + main;
+}
+
+function startEdit(personId, entryId){
+  const e = state.entries[personId].find(x=>x.id===entryId);
+  if(!e) return;
+  state.editingId = entryId;
+  state.formType = e.type;
+  state.formErr = '';
+  render();
+  const form = document.querySelector('.entry-form');
+  if(form) form.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function cancelEdit(){
+  state.editingId = null;
+  state.formType = 'in';
+  state.formErr = '';
+  render();
+}
+
+function submitEntry(personId){
+  const amountEl = document.getElementById('amountInput');
+  const noteEl = document.getElementById('noteInput');
+  const amount = parseFloat(amountEl.value);
+  const note = noteEl.value;
+  if(state.editingId){
+    updateEntry(personId, state.editingId, state.formType, amount, note);
+  }else{
+    addEntry(personId, state.formType, amount, note);
+  }
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+initAuth();
+</script>
+</body>
+</html>
