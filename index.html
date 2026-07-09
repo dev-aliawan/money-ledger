@@ -302,6 +302,9 @@
     font-size:14px;
     padding:2px 4px;
     flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
   }
   .entry-row:hover .entry-edit{ color:var(--ink-soft); }
   .entry-edit:hover{ color:var(--gold) !important; }
@@ -411,6 +414,7 @@
     .field.amount input{ width:100px; }
     .field.note input{ width:100%; }
     .form-row{ gap:12px; }
+    .entry-edit, .entry-del, .person-del{ color:var(--ink-soft) !important; }
   }
 </style>
 </head>
@@ -708,7 +712,9 @@ function render(){
               <div class="entry-date">${fmtDate(e.createdAt)}</div>
             </div>
             <div class="entry-amount ${e.type}">${e.type==='in'?'+':'-'}${fmtMoney(e.amount)}</div>
-            <button class="entry-edit" title="Edit" onclick="startEdit('${person.id}','${e.id}')">✎</button>
+            <button class="entry-edit" title="Edit" onclick="startEdit('${person.id}','${e.id}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            </button>
             <button class="entry-del" title="Delete" onclick="removeEntry('${person.id}','${e.id}')">×</button>
           </div>`).join('');
 
