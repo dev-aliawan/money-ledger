@@ -504,6 +504,16 @@ function initAuth(){
     state.checkingSession = true;
     state.hadUserGesture = false;
     tokenClient.requestAccessToken({ prompt: '' });
+    // Safety net: some browsers (Safari with popups blocked, strict cookie
+    // settings, etc.) never call back at all when the silent attempt is
+    // blocked. Don't leave the screen stuck blank — fall back to the
+    // manual sign-in button if nothing has happened after a couple seconds.
+    setTimeout(() => {
+      if(state.checkingSession){
+        state.checkingSession = false;
+        render();
+      }
+    }, 2500);
   }
   render();
 }
